@@ -1,10 +1,7 @@
 """
-automated test script for ardent socket switching distribution eval
+Automated alert wrapper
 
-run 300 reps of the 4K test program
-invocation syntax is distribution_test.py <moose-river PCM access point> <chip_location>
-
-usually set x = r'c:\Sharepoint\Microsoft\Moose River - PCM\' or x = x:\
+Provides a wrapper that sends an alert if the wrapped process fails or completes.
 
 Alert will be sent to the receiving email when either:
     a) all tests complete successfully
