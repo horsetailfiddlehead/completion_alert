@@ -1,0 +1,7 @@
+pytest
+pytest-mock>=0.2
+pytest-raises>=0.11
+hypothesis # parameterized testing library
+pylint
+pylint-pytest # removes false pylint false positives when using pytest fixtures, etc.
+flake8
