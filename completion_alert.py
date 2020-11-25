@@ -71,49 +71,54 @@ def send_sms_message(mesg=None):
         print(resp)
 
 
-# Check email info upfront and save it to use later
-# with smtplib.SMTP(smtp, port) as serv:
-#     # serv.set_debuglevel(1)
-#     ssl_context = ssl.create_default_context()
-#     serv.ehlo()
-#     serv.starttls(context=ssl_context)
-#     serv.ehlo()
-#     validate_login(serv, sending_addr)
+def run():
+    # Check email info upfront and save it to use later
+    # with smtplib.SMTP(smtp, port) as serv:
+    #     # serv.set_debuglevel(1)
+    #     ssl_context = ssl.create_default_context()
+    #     serv.ehlo()
+    #     serv.starttls(context=ssl_context)
+    #     serv.ehlo()
+    #     validate_login(serv, sending_addr)
 
-num_fails = 0
-for run in range(1, MAX_RUNS + 1):
-    now = datetime.datetime.now()
-    timestamp = now.strftime(fmt)
+    num_fails = 0
+    for run in range(1, MAX_RUNS + 1):
+        now = datetime.datetime.now()
+        timestamp = now.strftime(fmt)
 
-    print(f"executing run {run} of {MAX_RUNS}...")
-    exec_cmd = [sys.executable, '-c', 'print("This is just a test")']
-    try:
-        subprocess.check_call(exec_cmd, timeout=TEST_TIMEOUT_MINUTES, text=True) # run and print output to console
-    except subprocess.SubprocessError as err:
-        num_fails += 1
-        if isinstance(err, subprocess.TimeoutExpired):
-            mes = datetime.datetime.now().strftime("%a %b %d %H%Mh")
-            mes += " - TimeoutError - Program timed out after %s seconds" % err.timeout #pylint: disable=no-member
-            print(mes)
-            send_sms_message(mes)
-            break
-        if num_fails == MAX_FAILS:
-            print(f"reached {MAX_FAILS} fails")
-            # send an alert
+        print(f"executing run {run} of {MAX_RUNS}...")
+        exec_cmd = [sys.executable, '-c', 'print("This is just a test")']
+        try:
+            subprocess.check_call(exec_cmd, timeout=TEST_TIMEOUT_MINUTES, text=True) # run and print output to console
+        except subprocess.SubprocessError as err:
+            num_fails += 1
+            if isinstance(err, subprocess.TimeoutExpired):
+                mes = datetime.datetime.now().strftime("%a %b %d %H%Mh")
+                mes += " - TimeoutError - Program timed out after %s seconds" % err.timeout #pylint: disable=no-member
+                print(mes)
+                send_sms_message(mes)
+                break
+            if num_fails == MAX_FAILS:
+                print(f"reached {MAX_FAILS} fails")
+                # send an alert
+                failure_time = datetime.datetime.now().strftime("%a %b %d %H%Mh")
+                message = "Test rack error at %s." % failure_time
+                send_sms_message(message)
+                print(message)
+                break
             failure_time = datetime.datetime.now().strftime("%a %b %d %H%Mh")
-            message = "Test rack error at %s." % failure_time
+            message = "Test rack error at %s. Retrying." % failure_time
             send_sms_message(message)
             print(message)
-            break
-        failure_time = datetime.datetime.now().strftime("%a %b %d %H%Mh")
-        message = "Test rack error at %s. Retrying." % failure_time
-        send_sms_message(message)
-        print(message)
-        sleep(sleep_time * num_fails) # let retry period increase each time
+            sleep(sleep_time * num_fails) # let retry period increase each time
+        else:
+            num_fails = 0 # reset counter
+        finally:
+            print(120 * '-')
     else:
-        num_fails = 0 # reset counter
-    finally:
-        print(120 * '-')
-else:
-    print("All tests completed")
-    send_sms_message("All tests completed @ %s" % datetime.datetime.now().strftime("%a %b %d %H%Mh"))
+        print("All tests completed")
+        send_sms_message("All tests completed @ %s" % datetime.datetime.now().strftime("%a %b %d %H%Mh"))
+
+
+if __name__ == '__main__':
+    run()
