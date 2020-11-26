@@ -37,10 +37,10 @@ def get_login_password(login_acct):
         passwd = input(f"provide your password for {login_acct}: ")
     return passwd
 
-def store_login_password(login_acct, password):
+def store_login_password(service, login_acct, password):
     # store validated password
-    print(f"Storing {login_acct} password in {keyring_svc}")
-    keyring.set_password(keyring_svc, login_acct, password)
+    print(f"Storing {login_acct} password in {service}")
+    keyring.set_password(service, login_acct, password)
 
 def validate_login(server, login, password=None):
     """ attempts login with password, if given. otherwise prompts for password """
@@ -49,7 +49,7 @@ def validate_login(server, login, password=None):
     resp = server.login(login, password) # code 235 = accepted, 535 = rejected
     print(resp)
     print("saving password...", end="")
-    store_login_password(login, password)
+    store_login_password(keyring_svc, login, password)
 
 def send_sms_message(mesg=None):
     print(f"mock sending message {mesg}")
