@@ -52,8 +52,6 @@ def validate_login(server, login, password=None):
     store_login_password(keyring_svc, login, password)
 
 def send_sms_message(mesg=None):
-    print(f"mock sending message {mesg}")
-    return
     header = f"To: {receiving_email}\nFrom: {sending_addr}\n"
     # subj = "Subject: test rack failure\n"
     subj = 'Subject: \n'
