@@ -60,7 +60,7 @@ def test_get_password(capsys):
     """ test password retrieval from keyring """
     value = 'fk_pass'
     with patch('keyring.get_password', return_value=value) as mocker:
-        result = get_login_password('fake_account')
+        result = get_login_password('key_srv', 'fake_account')
 
     assert result == value
     mocker.assert_called_once()
@@ -71,9 +71,10 @@ def test_get_password(capsys):
 def test_get_password_failure(capsys):
     """ test behavior with failed password retrieval from keyring """
     value = 'fk_pass'
+    key_svc = "fake_service"
     with patch('keyring.get_password', return_value=None) as mocker:
         with patch('builtins.input', return_value=value, side_effect=print('mock prompt')):
-            result = get_login_password('fake_account')
+            result = get_login_password('key_srv', 'fake_account')
 
     assert result == value
     mocker.assert_called_once()
