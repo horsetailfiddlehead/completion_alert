@@ -2,11 +2,13 @@ import pytest
 from unittest.mock import patch
 import keyring
 import smtplib
+from smtpdfix import smtpd
 
 from completion_alert import (
     store_login_password,
     send_sms_message,
     get_login_password,
+    validate_login,
     )
 
 @patch('keyring.set_password')
@@ -78,10 +80,44 @@ def test_get_password_failure(capsys):
     captured = capsys.readouterr()
     assert len(captured.out.split('\n')) == 3
 
-# test failed password store
-# test server login validation & storage
-  # Test for failed login & reprompt of password
+@pytest.mark.xfail
+@patch('keyring.set_password')
+def test_password_store_fail(mock_keyring):
+    """ test failed password store """
+
+    key_acct = "test_acct"
+    login_name = "fake login"
+    login_pass = "1234"
+
+    mock_keyring.side_effect = keyring.errors.PasswordSetError
+
+    store_login_password(key_acct, login_name, login_pass)
+    mock_keyring.assert_called_once()
+    assert [key_acct, login_name, login_pass] == list(mock_keyring.call_args[0])
+
+@pytest.fixture
+def mock_use_tls(monkeypatch):
+    monkeypatch.setenv('SMTPD_USE_TLS', 'True')
+
+@pytest.mark.skip(reason="firewall causes test to hang")
+def test_validate_login(mock_use_tls, smtpd):
+    """ test server login validation & storage w/ & w/o password """
+    sender = "from@example.org"
+    receiver = "to@example.org"
+
+    with smtplib.SMTP(smtpd.hostname, smtpd.port) as client:
+        client.starttls()
+        validate_login(client, sender)
+
+
+@pytest.mark.skip
+def test_validate_login_fail():
+    """ Test for failed login & reprompt of password """
+
+
+
   # Test successful login & store password
+
 # test (also) the whole thing (sending connection & sending) with an actual server
 # test similar to ^^, check the plain/MIME-text is formatted properly
 
