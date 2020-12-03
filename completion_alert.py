@@ -12,13 +12,8 @@ Alert will be sent to the receiving email when either:
 import sys, datetime, subprocess, ssl, smtplib, os
 from time import sleep
 import keyring
+import argparse
 
-# messaging variables TODO place in struct objct
-keyring_svc = "rack_alert"
-smtp = "smtp.gmail.com"
-port = 587
-sending_addr = 'patrickm82694@gmail.com'
-receiving_email = "2063009501@vtext.com"
 
 # set up variables
 fmt = "%Y_%m_%d__%H_%M" # formatted as "YYYY_MM_DD__HH_MM"
@@ -28,9 +23,24 @@ MAX_FAILS = 1 # number of allowed failures in a row before notification
 sleep_time = 30 # base delay time (seconds) before attempting to rerun test
 TEST_TIMEOUT_MINUTES = 20 * 60
 
-def get_login_password(login_acct):
-    # check keyring for password, otherwise ask user
-    passwd = keyring.get_password(keyring_svc, login_acct)
+class MailParameters(): #pylint: disable=too-few-public-methods
+    """ storage object for messaging variables """
+    keyring_svc: str
+    mail_server: str
+    port: int
+    from_: str
+    to_: str
+
+    def __init__(self, program, host, port, sender, receiver):
+        self.keyring_svc = program
+        self.mail_server = host
+        self.port = port
+        self.from_ = sender
+        self.to_ = receiver
+
+def get_login_password(service, login_acct):
+    # check keyring service for password, otherwise ask user
+    passwd = keyring.get_password(service, login_acct)
     # if none, prompt user
     print(f"got {login_acct} password from keyring")
     if not passwd:
@@ -38,7 +48,7 @@ def get_login_password(login_acct):
     return passwd
 
 def store_login_password(service, login_acct, password):
-    # store validated password
+    # store validated password in service
     print(f"Storing {login_acct} password in {service}")
     keyring.set_password(service, login_acct, password)
 
@@ -77,9 +87,9 @@ def send_sms_message(mesg=None):
         print(resp)
 
 
-def run():
+def run(config: AlertParameters):
     # Check email info upfront and save it to use later
-    validate_login(sending_addr)
+    validate_login(config.sender, sender_passwd)
 
     num_fails = 0
     for run in range(1, MAX_RUNS + 1):
@@ -121,4 +131,11 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    params = MailParameters(
+        program="rack_alert",
+        host="smtp.gmail.com",
+        port=587,
+        sender='patrickm82694@gmail.com',
+        receiver="2063009501@vtext.com"
+    )
+    run(params)
