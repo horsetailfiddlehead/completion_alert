@@ -52,12 +52,12 @@ def store_login_password(service, login_acct, password):
     print(f"Storing {login_acct} password in {service}")
     keyring.set_password(service, login_acct, password)
 
-def validate_login(login, password=None):
+def validate_login(server:MailParameters, login, password=None):
     """ attempts login with password, if given. otherwise prompts for password """
     if not password:
-        password = get_login_password(login)
+        password = get_login_password(server.keyring_svc, login)
 
-    with smtplib.SMTP(smtp, port) as serv:
+    with smtplib.SMTP(server.mail_server, server.port) as serv:
         # serv.set_debuglevel(1)
         ssl_context = ssl.create_default_context()
         serv.ehlo()
@@ -67,29 +67,29 @@ def validate_login(login, password=None):
 
     print(resp)
     print("saving password...", end="")
-    store_login_password(keyring_svc, login, password)
+    store_login_password(server.keyring_svc, login, password)
 
-def send_sms_message(mesg=None):
-    header = f"To: {receiving_email}\nFrom: {sending_addr}\n"
+def send_sms_message(acct: MailParameters, mesg: str=None):
+    header = f"To: {acct.to_}\nFrom: {acct.from_}\n"
     # subj = "Subject: test rack failure\n"
     subj = 'Subject: \n'
     mesgbody = mesg or ""
 
-    password = get_login_password(sending_addr)
-    with smtplib.SMTP(smtp, port) as server:
+    password = get_login_password(acct.keyring_svc, acct.to_)
+    with smtplib.SMTP(acct.mail_server, acct.port) as server:
         # server.set_debuglevel(True)
         ssl_context = ssl.create_default_context()
         server.ehlo()
         server.starttls(context=ssl_context)
         server.ehlo()
-        server.login(sending_addr, password)
-        resp = server.sendmail(sending_addr, receiving_email, header + subj + mesgbody)
+        server.login(acct.to_, password)
+        resp = server.sendmail(acct.to_, acct.from_, header + subj + mesgbody)
         print(resp)
 
 
-def run(config: AlertParameters):
+def run(config: MailParameters):
     # Check email info upfront and save it to use later
-    validate_login(config.sender, sender_passwd)
+    validate_login(config.from_, config.from_passwd)
 
     num_fails = 0
     for run in range(1, MAX_RUNS + 1):
@@ -106,19 +106,19 @@ def run(config: AlertParameters):
                 mes = datetime.datetime.now().strftime("%a %b %d %H%Mh")
                 mes += " - TimeoutError - Program timed out after %s seconds" % err.timeout #pylint: disable=no-member
                 print(mes)
-                send_sms_message(mes)
+                send_sms_message(config, mes)
                 break
             if num_fails == MAX_FAILS:
                 print(f"reached {MAX_FAILS} fails")
                 # send an alert
                 failure_time = datetime.datetime.now().strftime("%a %b %d %H%Mh")
                 message = "Test rack error at %s." % failure_time
-                send_sms_message(message)
+                send_sms_message(config, message)
                 print(message)
                 break
             failure_time = datetime.datetime.now().strftime("%a %b %d %H%Mh")
             message = "Test rack error at %s. Retrying." % failure_time
-            send_sms_message(message)
+            send_sms_message(config, message)
             print(message)
             sleep(sleep_time * num_fails) # let retry period increase each time
         else:
@@ -127,7 +127,9 @@ def run(config: AlertParameters):
             print(120 * '-')
     else:
         print("All tests completed")
-        send_sms_message("All tests completed @ %s" % datetime.datetime.now().strftime("%a %b %d %H%Mh"))
+        send_sms_message(config,
+            "All tests completed @ %s" % datetime.datetime.now().strftime("%a %b %d %H%Mh")
+            )
 
 
 if __name__ == '__main__':
