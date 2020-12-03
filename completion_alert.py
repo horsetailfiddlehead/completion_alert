@@ -13,7 +13,7 @@ import sys, datetime, subprocess, ssl, smtplib, os
 from time import sleep
 import keyring
 
-# messaging variables
+# messaging variables TODO place in struct objct
 keyring_svc = "rack_alert"
 smtp = "smtp.gmail.com"
 port = 587
@@ -42,11 +42,19 @@ def store_login_password(service, login_acct, password):
     print(f"Storing {login_acct} password in {service}")
     keyring.set_password(service, login_acct, password)
 
-def validate_login(server, login, password=None):
+def validate_login(login, password=None):
     """ attempts login with password, if given. otherwise prompts for password """
     if not password:
         password = get_login_password(login)
-    resp = server.login(login, password) # code 235 = accepted, 535 = rejected
+
+    with smtplib.SMTP(smtp, port) as serv:
+        # serv.set_debuglevel(1)
+        ssl_context = ssl.create_default_context()
+        serv.ehlo()
+        serv.starttls(context=ssl_context)
+        serv.ehlo()
+        resp = serv.login(login, password) # code 235 = accepted, 535 = rejected
+
     print(resp)
     print("saving password...", end="")
     store_login_password(keyring_svc, login, password)
@@ -71,13 +79,7 @@ def send_sms_message(mesg=None):
 
 def run():
     # Check email info upfront and save it to use later
-    # with smtplib.SMTP(smtp, port) as serv:
-    #     # serv.set_debuglevel(1)
-    #     ssl_context = ssl.create_default_context()
-    #     serv.ehlo()
-    #     serv.starttls(context=ssl_context)
-    #     serv.ehlo()
-    #     validate_login(serv, sending_addr)
+    validate_login(sending_addr)
 
     num_fails = 0
     for run in range(1, MAX_RUNS + 1):
