@@ -38,6 +38,17 @@ SMS_carriers = {
     "VirginMobile": "vmobl.com",
 }
 
+email_server = {
+    "yahoo": "smtp.mail.yahoo.com",
+    "google": "smtp.google.com",
+    "office365": "smtp.office365.com",
+    "msn": "smtp-mail.outlook.com",
+    "aol": "smtp.aol.com",
+    "comcast": "smtp.comcast.net",
+    "xfinity": "smtp.comcast.net",
+
+}
+
 class MailParameters(): #pylint: disable=too-few-public-methods
     """ storage object for messaging variables """
     keyring_svc: str
@@ -60,6 +71,18 @@ def check_carrier(carrier: str) -> str:
                 f"Supported carriers are {', '.join(SMS_carriers)}.")
         raise argparse.ArgumentTypeError(mesg)
     return carrier
+
+def lookup_smtp_server(email: str) -> str:
+    """ Look up smtp server based on email address
+
+    If the provider is not in the list (i.e. not common provider), then make a
+    guess that the server follows a standard naming convention.
+    """
+    provider = email.split('@')[1].lower()
+    try:
+        return email_server[provider.split('.')[0]]
+    except KeyError:
+        return '.'.join(["smtp", provider]) # take a guess
 
 
 def get_login_password(service, login_acct):
@@ -188,7 +211,7 @@ if __name__ == '__main__':
 
     params = MailParameters(
         program="rack_alert",
-        host="smtp.gmail.com",
+        host=lookup_smtp_server(args.sender),
         port=587,
         sender=args.sender,
         receiver=args.receiver
