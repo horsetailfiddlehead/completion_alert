@@ -23,6 +23,21 @@ MAX_FAILS = 1 # number of allowed failures in a row before notification
 sleep_time = 30 # base delay time (seconds) before attempting to rerun test
 TEST_TIMEOUT_MINUTES = 20 * 60
 
+SMS_carriers = {
+    "ATT": "txt.att.net",
+    "Boost": "sms.myboostmobile.com",
+    "Cricket": "mms.cricketwireless.net",
+    "ProjectFi": "msg.fi.google.com",
+    "RepublicWireless": "text.republicwireless.com",
+    "Sprint": "messaging.sprintpcs.com",
+    "StraightTalk": "vtext.com",
+    "TMobile": "tmomail.net",
+    "Ting": "message.ting.com",
+    "USCellular": "email.uscc.net",
+    "Verizon": "vtext.com",
+    "VirginMobile": "vmobl.com",
+}
+
 class MailParameters(): #pylint: disable=too-few-public-methods
     """ storage object for messaging variables """
     keyring_svc: str
@@ -37,6 +52,15 @@ class MailParameters(): #pylint: disable=too-few-public-methods
         self.port = port
         self.from_ = sender
         self.to_ = receiver
+
+def check_carrier(carrier: str) -> str:
+    """ Checks whether the given service provider is supported """
+    if carrier not in SMS_carriers:
+        mesg = (f"The service provider '{carrier}' is not supported."
+                f"Supported carriers are {', '.join(SMS_carriers)}.")
+        raise argparse.ArgumentTypeError(mesg)
+    return carrier
+
 
 def get_login_password(service, login_acct):
     # check keyring service for password, otherwise ask user
@@ -86,6 +110,27 @@ def send_sms_message(acct: MailParameters, mesg: str=None):
         resp = server.sendmail(acct.to_, acct.from_, header + subj + mesgbody)
         print(resp)
 
+def cli_parser():
+    parser = argparse.ArgumentParser(
+        description="Program completion utility",
+        usage="%(prog)s [-h] sender (--email | --sms) [--carrier CARRIER] receiver -- cmd ... ")
+    tx_group = parser.add_argument_group(title="Sender arguments",
+            description="Message sender details")
+    tx_group.add_argument('sender', help="Sending email account")
+    rx_group = parser.add_argument_group(
+            title="Recipient arguments",
+            description="Message recipient details")
+    mutex_group = rx_group.add_mutually_exclusive_group(required=True)
+    mutex_group.add_argument('--email', help="Send message as an email", action='store_true')
+    mutex_group.add_argument('--sms', help="Send message as SMS (text) message",action='store_true')
+    rx_group.add_argument('receiver', help="Email or phone number of recipient")
+    rx_group.add_argument( '--carrier', type=check_carrier,
+            help=("Mobile carrier for receiving number. Required with --sms option. "
+                f"Supported carriers are {', '.join(SMS_carriers)}")
+            )
+    parser.add_argument('cmd', help="Command to run", nargs=argparse.REMAINDER)
+    return parser
+
 
 def run(config: MailParameters):
     # Check email info upfront and save it to use later
@@ -133,11 +178,19 @@ def run(config: MailParameters):
 
 
 if __name__ == '__main__':
+    cli_parser = cli_parser()
+    args = cli_parser.parse_args()
+
+    if args.sms:
+        if args.carrier is None:
+            cli_parser.error("Text message requires --carrier.")
+        args.receiver = '@'.join([args.receiver, SMS_carriers[args.carrier]])
+
     params = MailParameters(
         program="rack_alert",
         host="smtp.gmail.com",
         port=587,
-        sender='patrickm82694@gmail.com',
-        receiver="2063009501@vtext.com"
+        sender=args.sender,
+        receiver=args.receiver
     )
     run(params)
