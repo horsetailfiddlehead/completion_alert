@@ -136,7 +136,7 @@ def send_sms_message(acct: MailParameters, mesg: str=None):
 def cli_parser():
     parser = argparse.ArgumentParser(
         description="Program completion utility",
-        usage="%(prog)s [-h] sender (--email | --sms) [--carrier CARRIER] receiver -- cmd ... ")
+        usage="%(prog)s [-h] sender (--email | --sms) [--carrier CARRIER] receiver [--] cmd ... ")
     tx_group = parser.add_argument_group(title="Sender arguments",
             description="Message sender details")
     tx_group.add_argument('sender', help="Sending email account")

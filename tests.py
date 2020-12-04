@@ -1,14 +1,17 @@
 import pytest
+from typing import List
 from unittest.mock import patch
 import keyring
 import smtplib
 from smtpdfix import smtpd
+from argparse import Namespace
 
 from completion_alert import (
     store_login_password,
     send_sms_message,
     get_login_password,
     validate_login,
+    cli_parser,
     )
 
 @patch('keyring.set_password')
@@ -123,3 +126,51 @@ def test_validate_login_fail():
 # test similar to ^^, check the plain/MIME-text is formatted properly
 
 # test argument parsing
+def test_cli_parser_help(capsys):
+    test_input = ['-h']
+    test_parser = cli_parser()
+
+    with pytest.raises(SystemExit) as wrapped_e:
+        result = test_parser.parse_args(test_input)
+
+    assert wrapped_e.value.code == 0
+    capture = capsys.readouterr()
+    out, err = capture
+    assert "show this help message and exit" in out
+    assert len(err) == 0
+    assert 0
+
+
+class ParserArgs(Namespace):
+    """ Stand-in for namespace object """
+    sender: str = None
+    email: bool = False
+    sms: bool = False
+    carrier: str = None
+    receiver: str = None
+    cmd: List[str] = []
+
+    def __init__(self, sender: str = None, email: bool = False, sms: bool = False, #pylint: disable=too-many-arguments
+                 carrier: str = None, receiver: str = None, cmd: List[str] = []):
+        super().__init__()
+        self.sender = sender
+        self.email = email
+        self.sms = sms
+        self.receiver = receiver
+        self.carrier = carrier
+        self.cmd = cmd
+
+
+@pytest.mark.parametrize("input_args, expected",
+    [
+        (['sender@fake_mail.com', '--email', 'receiver@fake_mail.com'],
+            ParserArgs(sender='sender@fake_mail.com', email=True, receiver="receiver@fake_mail.com")
+        ),
+    ],
+    )
+def test_cli_parser(input_args, expected):
+    test_parser = cli_parser()
+
+    result = test_parser.parse_args(input_args)
+    assert vars(expected) == vars(result)
+
