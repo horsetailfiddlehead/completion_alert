@@ -66,7 +66,8 @@ class MailParameters(): #pylint: disable=too-few-public-methods
 
 def check_carrier(carrier: str) -> str:
     """ Checks whether the given service provider is supported """
-    if carrier not in SMS_carriers:
+    sms_carriers_lowercase = str(SMS_carriers.keys()).lower()
+    if carrier.lower() not in sms_carriers_lowercase:
         mesg = (f"The service provider '{carrier}' is not supported. "
                 f"Supported carriers are {', '.join(SMS_carriers)}.")
         raise argparse.ArgumentTypeError(mesg)
@@ -151,7 +152,7 @@ def cli_parser():
             help=("Mobile carrier for receiving number. Required with --sms option. "
                 f"Supported carriers are {', '.join(SMS_carriers)}")
             )
-    parser.add_argument('cmd', help="Command to run", nargs=argparse.REMAINDER)
+    parser.add_argument('cmd', help="Command to run", nargs='*')
     return parser
 
 
@@ -202,7 +203,7 @@ def run(config: MailParameters):
 
 if __name__ == '__main__':
     cli_parser = cli_parser()
-    args = cli_parser.parse_args()
+    args = cli_parser.parse_intermixed_args()
 
     if args.sms:
         if args.carrier is None:

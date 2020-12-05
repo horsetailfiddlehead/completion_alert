@@ -171,9 +171,13 @@ class ParserArgs(Namespace):
         (['sender@mail.com', '--sms', '--carrier', 'verizon', '1234567890'],
             ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon')
         ),
-        # also acceptable sms
+        # also acceptable sms: different order
         (['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon'],
             ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon')
+        ),
+        # also acceptable sms : uppercase
+        (['sender@mail.com', '--sms', '1234567890', '--carrier', 'VeriZon'],
+            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='VeriZon')
         ),
         # sms, no carrier
         (['sender@mail.com', '--sms', '1234567890'],
@@ -220,5 +224,5 @@ def test_cli_parser(input_args, expected):
     print(f"input args: {input_args}")
     print(f"expected: {vars(expected)}")
 
-    result = test_parser.parse_args(input_args)
+    result = test_parser.parse_intermixed_args(input_args)
     assert vars(expected) == vars(result)
