@@ -67,7 +67,7 @@ class MailParameters(): #pylint: disable=too-few-public-methods
 def check_carrier(carrier: str) -> str:
     """ Checks whether the given service provider is supported """
     if carrier not in SMS_carriers:
-        mesg = (f"The service provider '{carrier}' is not supported."
+        mesg = (f"The service provider '{carrier}' is not supported. "
                 f"Supported carriers are {', '.join(SMS_carriers)}.")
         raise argparse.ArgumentTypeError(mesg)
     return carrier
