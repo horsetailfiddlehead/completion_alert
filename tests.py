@@ -183,9 +183,10 @@ class ParserArgs(Namespace):
         (['sender@mail.com', '--sms', '1234567890'],
             ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890')
         ),
-        # sms, unsupported carrier
-        (['sender@mail.com', '--sms', '1234567890', '--carrier', 'oobleck'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='oobleck')
+        # sms, unsupported carrier (5)
+        pytest.param(['sender@mail.com', '--sms', '1234567890', '--carrier', 'oobleck'],
+            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='oobleck'),
+            marks=pytest.mark.raises(exception=SystemExit)
         ),
         # email to a number
         (['sender@mail.com', '--email', '1234567890', '--carrier', 'verizon'],
@@ -201,8 +202,9 @@ class ParserArgs(Namespace):
             ParserArgs(sender='sender@mail.com', sms=True, receiver='(123)456-7890', carrier='verizon')
         ),
         # no sender info
-        (['--sms', '1234567890', '--carrier', 'verizon'],
-            ParserArgs(sms=True, receiver='1234567890', carrier='verizon')
+        pytest.param(['--sms', '1234567890', '--carrier', 'verizon'],
+            ParserArgs(sms=True, receiver='1234567890', carrier='verizon'),
+            marks=pytest.mark.raises(exception=SystemExit)
         ),
         # extra commands with --
         (['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon', '--', 'echo', '"with -- command"'],
