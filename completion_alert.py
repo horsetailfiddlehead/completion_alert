@@ -13,6 +13,7 @@ import sys, datetime, subprocess, ssl, smtplib, os
 from time import sleep
 import keyring
 import argparse
+from re import sub as substitute
 
 
 # set up variables
@@ -72,6 +73,11 @@ def check_carrier(carrier: str) -> str:
                 f"Supported carriers are {', '.join(SMS_carriers)}.")
         raise argparse.ArgumentTypeError(mesg)
     return carrier
+
+def format_sms_number(number: str) -> str:
+    """ Remove non-numerical characters (parens, hyphens) from the sms number """
+    return substitute('[()-]', '', number)
+
 
 def lookup_smtp_server(email: str) -> str:
     """ Look up smtp server based on email address
@@ -146,7 +152,7 @@ def cli_parser():
             description="Message recipient details")
     mutex_group = rx_group.add_mutually_exclusive_group(required=True)
     mutex_group.add_argument('--email', help="Send message as an email", action='store_true')
-    mutex_group.add_argument('--sms', help="Send message as SMS (text) message",action='store_true')
+    mutex_group.add_argument('--sms', help="Send message as SMS (text) message", action='store_true')
     rx_group.add_argument('receiver', help="Email or phone number of recipient")
     rx_group.add_argument( '--carrier', type=check_carrier,
             help=("Mobile carrier for receiving number. Required with --sms option. "
@@ -208,7 +214,8 @@ if __name__ == '__main__':
     if args.sms:
         if args.carrier is None:
             cli_parser.error("Text message requires --carrier.")
-        args.receiver = '@'.join([args.receiver, SMS_carriers[args.carrier]])
+        sms_number = format_sms_number(args.receiver)
+        args.receiver = '@'.join([sms_number, SMS_carriers[args.carrier]])
 
     params = MailParameters(
         program="rack_alert",

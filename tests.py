@@ -198,7 +198,7 @@ class ParserArgs(Namespace):
         ),
         # phone has special chars "()-"
         (['sender@mail.com', '--sms', '(123)456-7890', '--carrier', 'verizon'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon')
+            ParserArgs(sender='sender@mail.com', sms=True, receiver='(123)456-7890', carrier='verizon')
         ),
         # no sender info
         (['--sms', '1234567890', '--carrier', 'verizon'],
@@ -226,3 +226,7 @@ def test_cli_parser(input_args, expected):
 
     result = test_parser.parse_intermixed_args(input_args)
     assert vars(expected) == vars(result)
+
+
+# test check_carrier function
+# test SMS number formatter to remove ()- and ' '
