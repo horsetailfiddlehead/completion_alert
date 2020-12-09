@@ -4,7 +4,10 @@ from unittest.mock import patch
 import keyring
 import smtplib
 from smtpdfix import smtpd
-from argparse import Namespace
+from argparse import (
+    Namespace,
+    ArgumentTypeError as argp_ArgumentTypeError,
+    )
 
 from completion_alert import (
     store_login_password,
@@ -12,6 +15,8 @@ from completion_alert import (
     get_login_password,
     validate_login,
     cli_parser,
+    check_carrier,
+    format_sms_number,
     )
 
 @patch('keyring.set_password')
@@ -229,6 +234,26 @@ def test_cli_parser(input_args, expected):
     result = test_parser.parse_intermixed_args(input_args)
     assert vars(expected) == vars(result)
 
+# test argparser error cases more specifically
 
 # test check_carrier function
+    # uppercase, lower case, mixed case, valid, invalid
+@pytest.mark.parametrize('test_case',
+    [
+    'SPRINT', 'sprint', 'SprINt', 'verizon',
+    pytest.param('5G', marks=pytest.mark.raises(exception=argp_ArgumentTypeError))
+    ])
+def test_check_carrier(test_case):
+    """ Verify this validator accepts variations of accepted carriers
+
+    And will raise an error on undefined carriers. The returned string should be unchanged.
+    """
+    result = check_carrier(test_case)
+    assert result == test_case
+
 # test SMS number formatter to remove ()- and ' '
+@pytest.mark.parametrize('number', ['(123)456-7890', '1234567890', '(647)--)374)(', '3030)-342-5989'])
+def test_sms_formatter(number):
+    """ Verify phone number formatter strips '(', ')', and '-' chars """
+    result = format_sms_number(number)
+    assert int(result)
