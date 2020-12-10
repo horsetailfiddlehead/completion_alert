@@ -155,8 +155,9 @@ class ParserArgs(Namespace):
     receiver: str = None
     cmd: List[str] = []
 
-    def __init__(self, sender: str = None, email: bool = False, sms: bool = False, #pylint: disable=too-many-arguments
-                 carrier: str = None, receiver: str = None, cmd: List[str] = []):
+    def __init__(self, sender: str = "sender@mail.com", email: bool = False,  #pylint: disable=too-many-arguments
+                 sms: bool = False, carrier: str = None, receiver: str = None,
+                 cmd: List[str] = []):
         super().__init__()
         self.sender = sender
         self.email = email
@@ -169,60 +170,73 @@ class ParserArgs(Namespace):
 @pytest.mark.parametrize("input_args, expected",
     [
         # acceptable email
-        (['sender@fake_mail.com', '--email', 'receiver@fake_mail.com'],
-            ParserArgs(sender='sender@fake_mail.com', email=True, receiver="receiver@fake_mail.com")
+        pytest.param(['sender@fake_mail.com', '--email', 'receiver@fake_mail.com'],
+            ParserArgs(email=True, receiver="receiver@fake_mail.com"),
+            id='valid email'
         ),
         # acceptable sms
-        (['sender@mail.com', '--sms', '--carrier', 'verizon', '1234567890'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon')
+        pytest.param(['sender@mail.com', '--sms', '--carrier', 'verizon', '1234567890'],
+            ParserArgs(sms=True, receiver='1234567890', carrier='verizon'),
+            id='valid sms'
         ),
         # also acceptable sms: different order
-        (['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon')
+        pytest.param(['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon'],
+            ParserArgs(sms=True, receiver='1234567890', carrier='verizon'),
+            id='sms different order'
         ),
         # also acceptable sms : uppercase
-        (['sender@mail.com', '--sms', '1234567890', '--carrier', 'VeriZon'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='VeriZon')
+        pytest.param(['sender@mail.com', '--sms', '1234567890', '--carrier', 'VeriZon'],
+            ParserArgs(sms=True, receiver='1234567890', carrier='VeriZon'),
+            id='uppercase sms carrier'
         ),
         # sms, no carrier
-        (['sender@mail.com', '--sms', '1234567890'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890')
+        pytest.param(['sender@mail.com', '--sms', '1234567890'],
+            ParserArgs(sms=True, receiver='1234567890'),
+            id='no sms carrier'
         ),
         # sms, unsupported carrier (5)
         pytest.param(['sender@mail.com', '--sms', '1234567890', '--carrier', 'oobleck'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='oobleck'),
-            marks=pytest.mark.raises(exception=SystemExit)
+            ParserArgs(sms=True, receiver='1234567890', carrier='oobleck'),
+            marks=pytest.mark.raises(exception=SystemExit), id="unsupported sms carrier"
         ),
         # email to a number
-        (['sender@mail.com', '--email', '1234567890', '--carrier', 'verizon'],
-            ParserArgs(sender='sender@mail.com', email=True, receiver='1234567890', carrier='verizon')
+        pytest.param(['sender@mail.com', '--email', '1234567890', '--carrier', 'verizon'],
+            ParserArgs(email=True, receiver='1234567890', carrier='verizon'),
+            marks=pytest.mark.xfail(), id='email to number'
         ),
         # no receiver info
         pytest.param(['sender@mail.com', '--sms', '--carrier', 'verizon'],
-            ParserArgs(sender='sender@mail.com', sms=True, carrier='verizon'),
-            marks=pytest.mark.raises(exception=SystemExit)
+            ParserArgs(sms=True, carrier='verizon'),
+            marks=pytest.mark.raises(exception=SystemExit), id='no receiver'
         ),
         # phone has special chars "()-"
-        (['sender@mail.com', '--sms', '(123)456-7890', '--carrier', 'verizon'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='(123)456-7890', carrier='verizon')
+        pytest.param(['sender@mail.com', '--sms', '(123)456-7890', '--carrier', 'verizon'],
+            ParserArgs(sms=True, receiver='(123)456-7890', carrier='verizon'),
+            id='special chars in sms number'
         ),
         # no sender info
         pytest.param(['--sms', '1234567890', '--carrier', 'verizon'],
-            ParserArgs(sms=True, receiver='1234567890', carrier='verizon'),
-            marks=pytest.mark.raises(exception=SystemExit)
+            ParserArgs(sender='', sms=True, receiver='1234567890', carrier='verizon'),
+            marks=pytest.mark.raises(exception=SystemExit), id='no sender'
         ),
         # extra commands with --
-        (['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon', '--', 'echo', '"with -- command"'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon', cmd=['echo', '"with -- command"'])
+        pytest.param(['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon',
+                      '--', 'echo', '"with -- command"'],
+            ParserArgs(sms=True, receiver='1234567890', carrier='verizon',
+                       cmd=['echo', '"with -- command"']),
+            id='command after --'
         ),
         # extra commands without --
-        (['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon', 'echo', '"no -- command"'],
-            ParserArgs(sender='sender@mail.com', sms=True, receiver='1234567890', carrier='verizon', cmd=['echo', '"no -- command"'])
+        pytest.param(['sender@mail.com', '--sms', '1234567890', '--carrier', 'verizon',
+                      'echo', '"no -- command"'],
+            ParserArgs(sms=True, receiver='1234567890', carrier='verizon',
+                       cmd=['echo', '"no -- command"']),
+            id='command without --'
         ),
         # both email and sms
         pytest.param(['sender@mail.com', '--sms', '--email', '1234567890', '--carrier', 'verizon'],
             ParserArgs(),
-            marks=pytest.mark.raises(exception=SystemExit)
+            marks=pytest.mark.raises(exception=SystemExit), id='block email and sms'
         ),
     ],
     )
