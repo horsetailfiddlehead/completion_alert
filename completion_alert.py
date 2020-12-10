@@ -74,9 +74,9 @@ def check_carrier(carrier: str) -> str:
         raise argparse.ArgumentTypeError(mesg)
     return carrier
 
-def format_sms_number(number: str) -> str:
+def format_sms_number(number: str, carrier) -> str:
     """ Remove non-numerical characters (parens, hyphens) from the sms number """
-    return substitute('[()-]', '', number)
+    return '@'.join([substitute('[()-]', '', number), carrier])
 
 
 def lookup_smtp_server(email: str) -> str:
@@ -214,8 +214,7 @@ if __name__ == '__main__':
     if args.sms:
         if args.carrier is None:
             cli_parser.error("Text message requires --carrier.")
-        sms_number = format_sms_number(args.receiver)
-        args.receiver = '@'.join([sms_number, SMS_carriers[args.carrier]])
+        args.receiver = format_sms_number(args.receiver, SMS_carriers[args.carrier])
 
     params = MailParameters(
         program="rack_alert",

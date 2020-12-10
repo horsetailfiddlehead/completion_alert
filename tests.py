@@ -252,8 +252,14 @@ def test_check_carrier(test_case):
     assert result == test_case
 
 # test SMS number formatter to remove ()- and ' '
-@pytest.mark.parametrize('number', ['(123)456-7890', '1234567890', '(647)--)374)(', '3030)-342-5989'])
-def test_sms_formatter(number):
+@pytest.mark.parametrize('number',
+    ['(123)456-7890', '1234567890', '(647)--)374)(', '3030)-342-5989',
+    pytest.param('not-a-number', marks=pytest.mark.raises(exception=ValueError))]
+    )
+@pytest.mark.parametrize('carrier', ['sprint.com'])
+def test_sms_formatter(number, carrier):
     """ Verify phone number formatter strips '(', ')', and '-' chars """
-    result = format_sms_number(number)
-    assert int(result)
+    result = format_sms_number(number, carrier)
+    ph_result, sms_portal = result.split('@', 1)
+    assert int(ph_result)
+    assert sms_portal == carrier
