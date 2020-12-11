@@ -248,10 +248,18 @@ def test_cli_parser(input_args, expected):
     result = test_parser.parse_intermixed_args(input_args)
     assert vars(expected) == vars(result)
 
-# test argparser error cases more specifically
+# pytest parametrize: inputs, [exception, message, output message]
+def test_cli_parser_error_cases(capsys, input_args, expected_err):
+    """ Test argparser error cases more specifically """
+    test_parser = cli_parser()
+    print(f"input args: {input_args}")
 
-# test check_carrier function
-    # uppercase, lower case, mixed case, valid, invalid
+    with pytest.raises(exception=expected_err) as err:
+        test_parser.parse_intermixed_args(input_args)
+    # compare any error messages, console output
+    outerr = capsys.readouterr()
+
+
 @pytest.mark.parametrize('test_case',
     [
     'SPRINT', 'sprint', 'SprINt', 'verizon',
@@ -265,7 +273,6 @@ def test_check_carrier(test_case):
     result = check_carrier(test_case)
     assert result == test_case
 
-# test SMS number formatter to remove ()- and ' '
 @pytest.mark.parametrize('number',
     ['(123)456-7890', '1234567890', '(647)--)374)(', '3030)-342-5989',
     pytest.param('not-a-number', marks=pytest.mark.raises(exception=ValueError))]
